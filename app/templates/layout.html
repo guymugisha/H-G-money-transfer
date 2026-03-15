@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H&G Money Transfer - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% if session.get('user') %}
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='logo.webp') }}" alt="H&G Logo" class="sidebar-logo">
+        </div>
+        <div class="sidebar-menu">
+            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <span>📊 Dashboard</span>
+            </a>
+            <a href="{{ url_for('calculator') }}" class="{% if request.endpoint == 'calculator' %}active{% endif %}">
+                <span>🧮 Calculator</span>
+            </a>
+            <a href="{{ url_for('transactions_history') }}" class="{% if request.endpoint == 'transactions_history' %}active{% endif %}">
+                <span>📜 Transactions</span>
+            </a>
+            {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('rates_settings') }}" class="{% if request.endpoint == 'rates_settings' %}active{% endif %}">
+                <span>⚙️ Rates Settings</span>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('monthly_reports') }}" class="{% if request.endpoint == 'monthly_reports' %}active{% endif %}">
+                <span>📂 Monthly Reports</span>
+            </a>
+        </div>
+        <div class="sidebar-footer">
+            <p>Logged in as: <strong>{{ session.get('user') }}</strong></p>
+            <a href="{{ url_for('logout') }}" style="color: #d32f2f; text-decoration: none; margin-top: 10px; display: block;">🚪 Logout</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-content" style="{% if not session.get('user') %}margin-left: 0; padding: 0;{% endif %}">
+        {% if session.get('user') %}
+        <header>
+            <h1>{% block page_title %}{% endblock %}</h1>
+            <div class="user-info">
+                <span>Welcome, {{ session.get('user') }}</span>
+                <span class="user-role">{{ session.get('role') | capitalize }}</span>
+            </div>
+        </header>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="card alert alert-{{ category }}" style="background: {% if category == 'error' %}#ffebee{% else %}#e8f5e9{% endif %}; border-left: 5px solid {% if category == 'error' %}#f44336{% else %}#4caf50{% endif %};">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

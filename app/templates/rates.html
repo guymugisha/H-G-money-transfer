@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block title %}Rates Settings{% endblock %}
+{% block page_title %}Exchange Rates Configuration{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <div class="card" style="grid-column: span 2;">
+        <h3>Update Business Rates</h3>
+        <p class="stat-label" style="margin-bottom: 2rem;">Set the buy and sell rates for Rwanda-hub currency pairs.</p>
+        
+        <form method="POST">
+            {% for curr in ['USD', 'CNY', 'CAD'] %}
+            <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--primary-color);">{{ curr }} ↔ RWF Pair</h4>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label>Sell Rate ({{ curr }} → RWF)</label>
+                        <p style="font-size: 0.75rem; color: #757575; margin-bottom: 5px;">Business receives {{ curr }}, gives RWF.</p>
+                        <input type="number" step="0.1" name="{{ curr.lower() }}_sell_rate" value="{{ rates[curr].sell_rate }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Buy Rate (RWF → {{ curr }})</label>
+                        <p style="font-size: 0.75rem; color: #757575; margin-bottom: 5px;">Business receives RWF, gives {{ curr }}.</p>
+                        <input type="number" step="0.1" name="{{ curr.lower() }}_buy_rate" value="{{ rates[curr].buy_rate }}" required>
+                    </div>
+                </div>
+                <div style="margin-top: 0.5rem; text-align: right;">
+                    <span class="stat-label">Current Spread:</span>
+                    <strong style="color: var(--secondary-color); margin-left: 10px;">{{ rates[curr].buy_rate - rates[curr].sell_rate }} RWF</strong>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <h4 style="margin-bottom: 1rem; margin-top: 2rem; color: var(--primary-color);">Independent Pairs</h4>
+            {% for curr, label, dest in [('USD_CAD', 'USD ↔ CAD', 'CAD'), ('USD_CNY', 'USD ↔ CNY', 'CNY')] %}
+            <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--primary-color);">{{ label }} Pair</h4>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label>Sell Rate (USD → {{ dest }})</label>
+                        <p style="font-size: 0.75rem; color: #757575; margin-bottom: 5px;">Business receives USD, gives {{ dest }}.</p>
+                        <input type="number" step="0.001" name="{{ curr.lower() }}_sell_rate" value="{{ rates[curr].sell_rate }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Buy Rate ({{ dest }} → USD)</label>
+                        <p style="font-size: 0.75rem; color: #757575; margin-bottom: 5px;">Business receives {{ dest }}, gives USD.</p>
+                        <input type="number" step="0.001" name="{{ curr.lower() }}_buy_rate" value="{{ rates[curr].buy_rate }}" required>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="card" style="box-shadow: none; border: 1px solid var(--border-color);">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>USD Transfer Fee (USD → USD)</label>
+                    <p style="font-size: 0.8rem; color: #757575; margin-bottom: 5px;">Fixed USD fee for US to Rwanda transfers.</p>
+                    <input type="number" step="0.01" name="usd_transfer_fee" value="{{ rates.usd_transfer_fee }}" required>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                    Last Updated: {{ rates.last_updated }}
+                </p>
+                <button type="submit" class="btn btn-primary">Save All Rates</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Inventory Adjustment</h3>
+        <p class="stat-label">Directly add or subtract funds from stock.</p>
+        
+        <form action="{{ url_for('adjust_inventory') }}" method="POST" style="margin-top: 1.5rem;">
+            <div class="form-group">
+                <label>Currency</label>
+                <select name="currency" required>
+                    <option value="USD">USD Inventory</option>
+                    <option value="RWF">RWF Inventory</option>
+                    <option value="CNY">CNY Inventory</option>
+                    <option value="CAD">CAD Inventory</option>
+                    <option value="USD_RWANDA">USD Rwanda Inventory (Local)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Action</label>
+                <select name="action" required>
+                    <option value="ADD">Add Funds (+)</option>
+                    <option value="SUBTRACT">Subtract Funds (-)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required>
+            </div>
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">Apply Adjustment</button>
+        </form>
+        
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <h3>Rate Guidelines</h3>
+            <ul style="padding-left: 1.2rem; color: var(--text-secondary); line-height: 1.4; font-size: 0.85rem;">
+                <li><strong>Hub Model:</strong> All trades go through RWF.</li>
+                <li><strong>Buy Rate:</strong> Customer pays RWF to get foreign.</li>
+                <li><strong>Sell Rate:</strong> Business pays RWF to get foreign.</li>
+                <li><strong>Spread:</strong> Your profit per 1 unit of foreign currency.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
