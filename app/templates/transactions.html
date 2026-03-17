@@ -43,6 +43,7 @@
                 <th class="text-right">Rate Used</th>
                 <th class="text-right">Profit/Fee</th>
                 <th>Client Name</th>
+                <th class="text-right">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -84,10 +85,15 @@
                     {% endif %}
                 </td>
                 <td>{{ tx.client_name }}</td>
+                <td class="text-right">
+                    <form action="{{ url_for('delete_transaction', tx_id=tx.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete transaction #{{ tx.id }}? This action cannot be undone.');">
+                        <button type="submit" class="btn" style="background: transparent; color: #d32f2f; padding: 0.2rem 0.5rem; border: 1px solid #d32f2f; font-size: 0.8rem; cursor: pointer;">Delete</button>
+                    </form>
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-secondary);">No transactions found for this period.</td>
+                <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-secondary);">No transactions found for this period.</td>
             </tr>
             {% endfor %}
         </tbody>

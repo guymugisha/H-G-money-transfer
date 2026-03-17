@@ -32,6 +32,7 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")
     table_exists = cursor.fetchone()
 
@@ -43,6 +44,7 @@ def init_db():
             cursor.execute("DROP TABLE transactions")
             conn.commit()
 
+    # Main transactions table
     conn.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,6 +60,31 @@ def init_db():
         )
     ''')
 
+    # FIFO batches table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS currency_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            original_amount REAL NOT NULL,
+            remaining REAL NOT NULL,
+            sell_rate REAL NOT NULL
+        )
+    ''')
+
+    # Debt table — tracks debt per currency when batches are empty
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS currency_debts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            debt_amount REAL NOT NULL,
+            buy_rate_at_debt REAL NOT NULL,
+            remaining_debt REAL NOT NULL
+        )
+    ''')
+
+    # Migrations
     cursor.execute("PRAGMA table_info(transactions)")
     columns = [column[1] for column in cursor.fetchall()]
 
@@ -80,6 +107,118 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+# ──────────────────────────────────────────────
+# FIFO + DEBT HELPERS
+# ──────────────────────────────────────────────
+
+def get_total_debt(conn, currency):
+    """Get total remaining debt for a currency."""
+    result = conn.execute('''
+        SELECT SUM(remaining_debt) as total FROM currency_debts
+        WHERE currency = ? AND remaining_debt > 0
+    ''', (currency,)).fetchone()
+    return result['total'] if result['total'] else 0.0
+
+
+def add_batch(conn, currency, amount, sell_rate):
+    """
+    Add incoming foreign currency.
+    If debt exists, pay it off first before creating a real batch.
+    Profit is calculated on debt repayment using the debt's original buy rate.
+    Returns profit generated from paying off debt.
+    """
+    profit_from_debt = 0.0
+    remaining_to_add = amount
+
+    # Pay off existing debts oldest first
+    debts = conn.execute('''
+        SELECT * FROM currency_debts
+        WHERE currency = ? AND remaining_debt > 0
+        ORDER BY id ASC
+    ''', (currency,)).fetchall()
+
+    for debt in debts:
+        if remaining_to_add <= 0:
+            break
+
+        debt_id = debt['id']
+        debt_remaining = debt['remaining_debt']
+        buy_rate_at_debt = debt['buy_rate_at_debt']
+
+        paid = min(debt_remaining, remaining_to_add)
+
+        # Profit = paid × (buy_rate_when_debt_was_created - current_sell_rate)
+        profit_from_debt += paid * (buy_rate_at_debt - sell_rate)
+
+        conn.execute('''
+            UPDATE currency_debts SET remaining_debt = ? WHERE id = ?
+        ''', (debt_remaining - paid, debt_id))
+
+        remaining_to_add -= paid
+
+    # Whatever is left after paying debts becomes a real batch
+    if remaining_to_add > 0:
+        conn.execute('''
+            INSERT INTO currency_batches (timestamp, currency, original_amount, remaining, sell_rate)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), currency, remaining_to_add, remaining_to_add, sell_rate))
+
+    return profit_from_debt
+
+
+def consume_batches(conn, currency, amount_needed, buy_rate):
+    """
+    Consume FIFO batches for a given currency.
+    If batches run out, create a debt entry instead of using a fallback.
+    Returns total profit in RWF calculated across all consumed batches.
+    """
+    batches = conn.execute('''
+        SELECT * FROM currency_batches
+        WHERE currency = ? AND remaining > 0
+        ORDER BY id ASC
+    ''', (currency,)).fetchall()
+
+    total_profit = 0.0
+    remaining_needed = amount_needed
+
+    for batch in batches:
+        if remaining_needed <= 0:
+            break
+
+        batch_id = batch['id']
+        batch_remaining = batch['remaining']
+        batch_sell_rate = batch['sell_rate']
+
+        consumed = min(batch_remaining, remaining_needed)
+
+        # Profit = consumed × (buy_rate - sell_rate of this batch)
+        total_profit += consumed * (buy_rate - batch_sell_rate)
+
+        conn.execute('''
+            UPDATE currency_batches SET remaining = ? WHERE id = ?
+        ''', (batch_remaining - consumed, batch_id))
+
+        remaining_needed -= consumed
+
+    # If batches exhausted, create a debt — profit will come when debt is repaid
+    if remaining_needed > 0:
+        conn.execute('''
+            INSERT INTO currency_debts (timestamp, currency, debt_amount, buy_rate_at_debt, remaining_debt)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            currency,
+            remaining_needed,
+            buy_rate,
+            remaining_needed
+        ))
+
+    return total_profit
+
+# ──────────────────────────────────────────────
+# JSON HELPERS
+# ──────────────────────────────────────────────
 
 def load_json(filepath, defaults):
     if not os.path.exists(filepath):
@@ -114,6 +253,10 @@ def load_balances():
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
+# ──────────────────────────────────────────────
+# APP SETUP
+# ──────────────────────────────────────────────
+
 @app.before_request
 def setup():
     if not hasattr(app, '_initialized'):
@@ -144,6 +287,10 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# ──────────────────────────────────────────────
+# DASHBOARD
+# ──────────────────────────────────────────────
+
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
@@ -170,6 +317,12 @@ def dashboard():
     ''', (f'{today}%',)).fetchone()
 
     daily_profit = stats['total_profit'] if stats['total_profit'] else 0
+
+    # Current debts per currency
+    debts = {}
+    for currency in ['USD', 'CNY', 'CAD']:
+        debts[currency] = get_total_debt(conn, currency)
+
     recent = conn.execute('SELECT * FROM transactions ORDER BY id DESC LIMIT 5').fetchall()
     conn.close()
 
@@ -178,7 +331,12 @@ def dashboard():
                            balances=balances,
                            spreads=spreads,
                            daily_profit=daily_profit,
+                           debts=debts,
                            recent=recent)
+
+# ──────────────────────────────────────────────
+# CALCULATOR
+# ──────────────────────────────────────────────
 
 @app.route('/calculator', methods=['GET', 'POST'])
 def calculator():
@@ -204,41 +362,51 @@ def calculator():
         profit = 0
         fee = 0
 
+        conn = get_db()
+
+        # ── RWF HUB PAIRS (USD, CNY, CAD ↔ RWF) ──
         if '_TO_' in type and ('RWF' in type):
             parts = type.split('_TO_')
             from_curr = parts[0]
             to_curr = parts[1]
 
             if to_curr == 'RWF':
-                # FOREIGN -> RWF
+                # FOREIGN → RWF: pay debts first, then create batch
                 foreign_currency = from_curr
                 foreign_amount = amount
                 rate = rates[foreign_currency]['sell_rate']
                 rwf_amount = foreign_amount * rate
-                profit = 0
 
                 # if balances['rwf_balance'] < rwf_amount:
                 #     flash(f"Insufficient RWF balance! Need {rwf_amount:,.0f} RWF", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
+
+                # Pay off any existing debt, create batch with remainder
+                profit = add_batch(conn, foreign_currency, foreign_amount, rate)
 
                 balances[f"{foreign_currency.lower()}_balance"] += foreign_amount
                 balances['rwf_balance'] -= rwf_amount
 
             elif from_curr == 'RWF':
-                # RWF -> FOREIGN
+                # RWF → FOREIGN: consume FIFO batches, create debt if needed
                 foreign_currency = to_curr
                 rwf_amount = amount
                 rate = rates[foreign_currency]['buy_rate']
                 foreign_amount = rwf_amount / rate
-                profit = foreign_amount * (rates[foreign_currency]['buy_rate'] - rates[foreign_currency]['sell_rate'])
 
                 # if balances[f"{foreign_currency.lower()}_balance"] < foreign_amount:
                 #     flash(f"Insufficient {foreign_currency} balance!", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
+
+                # FIFO profit — creates debt if batches exhausted
+                profit = consume_batches(conn, foreign_currency, foreign_amount, rate)
 
                 balances['rwf_balance'] += rwf_amount
                 balances[f"{foreign_currency.lower()}_balance"] -= foreign_amount
 
+        # ── USD ↔ CAD (inventory only, no RWF profit) ──
         elif type in ['USD_TO_CAD', 'CAD_TO_USD', 'USD_TO_CNY', 'CNY_TO_USD']:
             profit = 0
             fee = 0
@@ -252,6 +420,7 @@ def calculator():
 
                 # if balances['cad_balance'] < cad_to_deliver:
                 #     flash("Insufficient CAD balance!", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
                 balances['usd_balance'] += amount
                 balances['cad_balance'] -= cad_to_deliver
@@ -265,6 +434,7 @@ def calculator():
 
                 # if balances['usd_balance'] < usd_to_deliver:
                 #     flash("Insufficient USD balance!", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
                 balances['cad_balance'] += amount
                 balances['usd_balance'] -= usd_to_deliver
@@ -278,6 +448,7 @@ def calculator():
 
                 # if balances['cny_balance'] < cny_to_deliver:
                 #     flash("Insufficient CNY balance!", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
                 balances['usd_balance'] += amount
                 balances['cny_balance'] -= cny_to_deliver
@@ -291,10 +462,12 @@ def calculator():
 
                 # if balances['usd_balance'] < usd_to_deliver:
                 #     flash("Insufficient USD balance!", "error")
+                #     conn.close()
                 #     return redirect(url_for('calculator'))
                 balances['cny_balance'] += amount
                 balances['usd_balance'] -= usd_to_deliver
 
+        # ── USD US → USD RWANDA (fee transaction) ──
         elif type == 'USD_US_TO_USD_RWA':
             foreign_currency = 'USD'
             fee_rate = float(rates['usd_transfer_fee'])
@@ -303,6 +476,7 @@ def calculator():
 
             # if balances['usd_rwanda_balance'] < foreign_amount:
             #     flash(f"Insufficient USD (Rwanda) balance! Need {foreign_amount:,.2f} USD", "error")
+            #     conn.close()
             #     return redirect(url_for('calculator'))
 
             profit = 0
@@ -318,7 +492,6 @@ def calculator():
         save_json(BALANCES_FILE, balances)
 
         # Record transaction
-        conn = get_db()
         conn.execute('''
             INSERT INTO transactions
             (timestamp, transaction_type, foreign_currency, foreign_amount, rwf_amount, rate_used, profit, fee, client_name)
@@ -340,7 +513,18 @@ def calculator():
         flash(f"Transaction successful for {client_name}! {type.replace('_', ' ')}", "success")
         return redirect(url_for('dashboard'))
 
-    return render_template('calculator.html', rates=rates, balances=balances)
+    # Pass debts to calculator page
+    conn = get_db()
+    debts = {}
+    for currency in ['USD', 'CNY', 'CAD']:
+        debts[currency] = get_total_debt(conn, currency)
+    conn.close()
+
+    return render_template('calculator.html', rates=rates, balances=balances, debts=debts)
+
+# ──────────────────────────────────────────────
+# RATES MANAGEMENT
+# ──────────────────────────────────────────────
 
 @app.route('/rates', methods=['GET', 'POST'])
 def rates_settings():
@@ -367,7 +551,18 @@ def rates_settings():
         flash("Exchange rates and fees updated", "success")
         return redirect(url_for('rates_settings'))
 
-    return render_template('rates.html', rates=rates)
+    # Pass debts to rates page for admin visibility
+    conn = get_db()
+    debts = {}
+    for currency in ['USD', 'CNY', 'CAD']:
+        debts[currency] = get_total_debt(conn, currency)
+    conn.close()
+
+    return render_template('rates.html', rates=rates, debts=debts)
+
+# ──────────────────────────────────────────────
+# INVENTORY ADJUSTMENT
+# ──────────────────────────────────────────────
 
 @app.route('/inventory/adjust', methods=['POST'])
 def adjust_inventory():
@@ -384,6 +579,7 @@ def adjust_inventory():
         return redirect(url_for('rates_settings'))
 
     balances = load_balances()
+    rates = load_rates()
 
     if currency in ['USD', 'CNY', 'CAD', 'RWF', 'USD_RWANDA']:
         balance_key = f"{currency.lower()}_balance"
@@ -393,6 +589,15 @@ def adjust_inventory():
 
         if action == 'ADD':
             balances[balance_key] += amount
+
+            # If adding foreign currency manually, also create a batch
+            # so FIFO and debt tracking stay accurate
+            if currency in ['USD', 'CNY', 'CAD']:
+                conn = get_db()
+                sell_rate = rates.get(currency, {}).get('sell_rate', 0)
+                add_batch(conn, currency, amount, sell_rate)
+                conn.commit()
+                conn.close()
         else:
             # if balances[balance_key] < amount:
             #     flash(f"Insufficient {currency} in inventory!", "error")
@@ -403,6 +608,29 @@ def adjust_inventory():
     save_json(BALANCES_FILE, balances)
     flash(f"Inventory updated: {action} {amount} {currency}", "success")
     return redirect(url_for('rates_settings'))
+
+# ──────────────────────────────────────────────
+# TRANSACTION HISTORY
+# ──────────────────────────────────────────────
+
+@app.route('/transactions/delete/<int:tx_id>', methods=['POST'])
+def delete_transaction(tx_id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM transactions WHERE id = ?', (tx_id,))
+
+    if cursor.rowcount > 0:
+        flash(f"Transaction #{tx_id} deleted successfully.", "success")
+    else:
+        flash("Transaction not found.", "error")
+
+    conn.commit()
+    conn.close()
+
+    return redirect(request.referrer or url_for('transactions_history'))
 
 @app.route('/transactions')
 def transactions_history():
@@ -426,11 +654,18 @@ def transactions_history():
 
     query += ' ORDER BY id DESC'
     transactions = conn.execute(query, params).fetchall()
-
     total_profit = sum(t['profit'] for t in transactions)
     conn.close()
 
-    return render_template('transactions.html', transactions=transactions, total_profit=total_profit, selected_date=date_filter, selected_currency=currency_filter)
+    return render_template('transactions.html',
+                           transactions=transactions,
+                           total_profit=total_profit,
+                           selected_date=date_filter,
+                           selected_currency=currency_filter)
+
+# ──────────────────────────────────────────────
+# REPORTS
+# ──────────────────────────────────────────────
 
 @app.route('/reports/monthly_reports/<filename>')
 def serve_report(filename):
