@@ -1,7 +1,7 @@
 {
     "USD": {
-        "sell_rate": 1445.0,
-        "buy_rate": 1480.0
+        "sell_rate": 1440.0,
+        "buy_rate": 1475.0
     },
     "CNY": {
         "sell_rate": 200.0,
@@ -20,5 +20,5 @@
         "buy_rate": 7.6
     },
     "usd_transfer_fee": 50.0,
-    "last_updated": "2026-03-17 22:52:06"
+    "last_updated": "2026-03-18 23:02:09"
 }

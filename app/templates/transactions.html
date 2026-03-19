@@ -15,19 +15,21 @@
                 <label for="currency">Currency</label>
                 <select name="currency" id="currency">
                     <option value="">All Currencies</option>
-                    <option value="USD" {% if selected_currency == 'USD' %}selected{% endif %}>USD</option>
-                    <option value="CNY" {% if selected_currency == 'CNY' %}selected{% endif %}>CNY</option>
-                    <option value="CAD" {% if selected_currency == 'CAD' %}selected{% endif %}>CAD</option>
+                    <option value="USD" {% if selected_currency=='USD' %}selected{% endif %}>USD</option>
+                    <option value="CNY" {% if selected_currency=='CNY' %}selected{% endif %}>CNY</option>
+                    <option value="CAD" {% if selected_currency=='CAD' %}selected{% endif %}>CAD</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-secondary">Filter</button>
-            <a href="{{ url_for('transactions_history') }}" class="btn" style="text-decoration: none; color: var(--text-secondary);">Clear</a>
+            <a href="{{ url_for('transactions_history') }}" class="btn"
+                style="text-decoration: none; color: var(--text-secondary);">Clear</a>
         </form>
-        
+
         <div class="text-right" style="display: flex; gap: 2rem; align-items: flex-end;">
             <div>
                 <span class="stat-label">Total Selected Profit:</span><br>
-                <span class="stat-value" style="font-size: 1.4rem; color: var(--secondary-color);">{{ "{:,.0f}".format(total_profit) }} RWF</span>
+                <span class="stat-value" style="font-size: 1.4rem; color: var(--secondary-color);">{{
+                    "{:,.0f}".format(total_profit) }} RWF</span>
             </div>
         </div>
     </div>
@@ -43,7 +45,6 @@
                 <th class="text-right">Rate Used</th>
                 <th class="text-right">Profit/Fee</th>
                 <th>Client Name</th>
-                <th class="text-right">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -52,48 +53,46 @@
                 <td>#{{ tx.id }}</td>
                 <td>{{ tx.timestamp }}</td>
                 <td>
-                    <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #f0f0f0; color: #333;">
+                    <span
+                        style="padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #f0f0f0; color: #333;">
                         {{ tx.transaction_type.replace('_', ' ') }}
                     </span>
                 </td>
                 <td class="text-right">
                     {% if tx.transaction_type in ['USD_TO_CAD', 'USD_TO_CNY'] %}
-                        {{ "{:,.2f}".format(tx.foreign_amount) }} USD
+                    {{ "{:,.2f}".format(tx.foreign_amount) }} USD
                     {% elif tx.transaction_type in ['CAD_TO_USD', 'CNY_TO_USD'] %}
-                        {{ "{:,.2f}".format(tx.foreign_amount) }} {{ tx.transaction_type.split('_')[0] }}
+                    {{ "{:,.2f}".format(tx.foreign_amount) }} {{ tx.transaction_type.split('_')[0] }}
                     {% else %}
-                        {{ "{:,.2f}".format(tx.foreign_amount) }} {{ tx.foreign_currency }}
+                    {{ "{:,.2f}".format(tx.foreign_amount) }} {{ tx.foreign_currency }}
                     {% endif %}
                 </td>
                 <td class="text-right">
                     {% if tx.transaction_type in ['USD_TO_CAD', 'USD_TO_CNY'] %}
-                        {{ "{:,.2f}".format(tx.rwf_amount) }} {{ tx.transaction_type.split('_')[2] }}
+                    {{ "{:,.2f}".format(tx.rwf_amount) }} {{ tx.transaction_type.split('_')[2] }}
                     {% elif tx.transaction_type in ['CAD_TO_USD', 'CNY_TO_USD'] %}
-                        {{ "{:,.2f}".format(tx.rwf_amount) }} USD
+                    {{ "{:,.2f}".format(tx.rwf_amount) }} USD
                     {% else %}
-                        {{ "{:,.0f}".format(tx.rwf_amount) }}
+                    {{ "{:,.0f}".format(tx.rwf_amount) }}
                     {% endif %}
                 </td>
                 <td class="text-right">{{ tx.rate_used if tx.rate_used > 0 else '-' }}</td>
-                <td class="text-right" style="font-weight: 600; color: {% if tx.profit > 0 or tx.fee > 0 %}var(--secondary-color){% else %}#757575{% endif %};">
+                <td class="text-right"
+                    style="font-weight: 600; color: {% if tx.profit > 0 or tx.fee > 0 %}var(--secondary-color){% else %}#757575{% endif %};">
                     {% if tx.transaction_type in ['USD_TO_CAD', 'CAD_TO_USD', 'USD_TO_CNY', 'CNY_TO_USD'] %}
-                        -
+                    -
                     {% elif tx.transaction_type == 'USD_US_TO_USD_RWA' %}
-                        ${{ "{:,.2f}".format(tx.fee) }} (Fee)
+                    ${{ "{:,.2f}".format(tx.fee) }} (Fee)
                     {% else %}
-                        {{ "{:,.0f}".format(tx.profit) }} RWF
+                    {{ "{:,.0f}".format(tx.profit) }} RWF
                     {% endif %}
                 </td>
                 <td>{{ tx.client_name }}</td>
-                <td class="text-right">
-                    <form action="{{ url_for('delete_transaction', tx_id=tx.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete transaction #{{ tx.id }}? This action cannot be undone.');">
-                        <button type="submit" class="btn" style="background: transparent; color: #d32f2f; padding: 0.2rem 0.5rem; border: 1px solid #d32f2f; font-size: 0.8rem; cursor: pointer;">Delete</button>
-                    </form>
-                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-secondary);">No transactions found for this period.</td>
+                <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-secondary);">No transactions
+                    found for this period.</td>
             </tr>
             {% endfor %}
         </tbody>

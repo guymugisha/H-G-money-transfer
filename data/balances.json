@@ -1,8 +1,9 @@
 {
-    "usd_balance": 299.9998940370642,
-    "rwf_balance": 131744651.0,
-    "cny_balance": 0.0,
-    "cad_balance": 0.0,
+    "usd_balance": 11574.496808833217,
+    "rwf_balance": 121698135.55,
+    "cny_balance": 50000.0,
+    "cad_balance": -76545.0,
     "usd_rwanda_balance": 10550.0,
-    "last_updated": "2026-03-17 22:56:10"
+    "last_updated": "2026-03-18 23:57:13",
+    "total_profit_rwf": 503245.89446862123
 }
