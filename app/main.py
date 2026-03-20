@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).parent / '.env')
 import os
 import io
 import json
@@ -25,7 +28,10 @@ USERS = {
 }
 
 def get_db():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    url = os.environ.get('DATABASE_URL')
+    if not url:
+        raise RuntimeError("DATABASE_URL environment variable not set")
+    return psycopg2.connect(url)
 
 def get_cursor(conn):
     return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
