@@ -8,4 +8,5 @@ services:
       - ./app:/app/app
       - ./data:/app/data
       - ./reports:/app/reports
+      - ./scripts:/app/scripts
     restart: always

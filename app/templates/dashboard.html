@@ -7,29 +7,61 @@
 <div class="grid">
     <div class="card stat-card">
         <span class="stat-label">USD Inventory (US)</span>
-        <span class="stat-value" {% if balances.usd_balance < 0 %}style="color: red;"{% endif %}>{{ "{:,.2f}".format(balances.usd_balance) }} USD</span>
+        <span class="stat-value" {% if balances.usd_balance < 0 %}style="color: red;" {% endif %}>{{
+            "{:,.2f}".format(balances.usd_balance) }} USD</span>
     </div>
     <div class="card stat-card" style="border-left: 4px solid var(--primary-color);">
         <span class="stat-label">USD Inventory (Rwanda)</span>
-        <span class="stat-value" {% if balances.usd_rwanda_balance < 0 %}style="color: red;"{% endif %}>{{ "{:,.2f}".format(balances.usd_rwanda_balance) }} USD</span>
+        <span class="stat-value" {% if balances.usd_rwanda_balance < 0 %}style="color: red;" {% endif %}>{{
+            "{:,.2f}".format(balances.usd_rwanda_balance) }} USD</span>
     </div>
     <div class="card stat-card">
         <span class="stat-label">RWF Inventory</span>
-        <span class="stat-value" {% if balances.rwf_balance < 0 %}style="color: red;"{% endif %}>{{ "{:,.0f}".format(balances.rwf_balance) }} RWF</span>
+        <span class="stat-value" {% if balances.rwf_balance < 0 %}style="color: red;" {% endif %}>{{
+            "{:,.0f}".format(balances.rwf_balance) }} RWF</span>
     </div>
     <div class="card stat-card">
         <span class="stat-label">CNY Inventory</span>
-        <span class="stat-value" {% if balances.cny_balance < 0 %}style="color: red;"{% endif %}>{{ "{:,.2f}".format(balances.cny_balance) }} CNY</span>
+        <span class="stat-value" {% if balances.cny_balance < 0 %}style="color: red;" {% endif %}>{{
+            "{:,.2f}".format(balances.cny_balance) }} CNY</span>
     </div>
     <div class="card stat-card">
         <span class="stat-label">CAD Inventory</span>
-        <span class="stat-value" {% if balances.cad_balance < 0 %}style="color: red;"{% endif %}>{{ "{:,.2f}".format(balances.cad_balance) }} CAD</span>
+        <span class="stat-value" {% if balances.cad_balance < 0 %}style="color: red;" {% endif %}>{{
+            "{:,.2f}".format(balances.cad_balance) }} CAD</span>
     </div>
     <div class="card stat-card" style="border-left: 4px solid var(--secondary-color);">
         <span class="stat-label">Daily Profit (RWF)</span>
         <span class="stat-value" style="color: var(--secondary-color);">{{ "{:,.0f}".format(daily_profit) }} RWF</span>
-        <span class="stat-trend">Total across all pairs</span>
+        <span class="stat-trend">Today's transactions only</span>
     </div>
+    <div class="card stat-card" style="border-left: 4px solid var(--accent-color);">
+        <span class="stat-label">Total Profit (RWF)</span>
+        <span class="stat-value" style="color: var(--accent-color);">
+            {{ "{:,.0f}".format(balances.total_profit_rwf if balances.total_profit_rwf else 0) }} RWF
+        </span>
+        <span class="stat-trend">Cumulative — editable by admin</span>
+    </div>
+
+    {% if debts %}
+    {% set has_any_debt = namespace(found=false) %}
+    {% for currency, debt in debts.items() %}
+    {% if debt > 0 %}{% set has_any_debt.found = true %}{% endif %}
+    {% endfor %}
+    {% if has_any_debt.found %}
+    <div class="card stat-card" style="border-left: 4px solid #e53935;">
+        <span class="stat-label" style="color: #e53935;">⚠️ Pending Debts</span>
+        {% for currency, debt in debts.items() %}
+        {% if debt > 0 %}
+        <div style="display: flex; justify-content: space-between; margin-top: 0.4rem;">
+            <span style="font-weight: 600; font-size: 0.9rem;">{{ currency }}</span>
+            <span style="color: #e53935; font-weight: 700; font-size: 0.9rem;">{{ '{:,.2f}'.format(debt) }} owed</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
 </div>
 
 <div class="card" style="margin-top: 1.5rem;">
@@ -137,8 +169,9 @@
                     -
                     {% else %}
                     {{ "{:,.0f}".format(tx.profit) if tx.profit > 0 else "-" }}
-                    {% if tx.fee > 0 %}<span style="color: var(--primary-color)">({{ "{:,.2f}".format(tx.fee) }}
-                        Fee)</span>{% endif %}
+                    {% if tx.fee > 0 %}
+                    <span style="color: var(--primary-color)">({{ "{:,.2f}".format(tx.fee) }} Fee)</span>
+                    {% endif %}
                     {% endif %}
                 </td>
                 <td>{{ tx.client_name }}</td>
