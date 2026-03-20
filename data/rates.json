@@ -8,17 +8,17 @@
         "buy_rate": 210.0
     },
     "CAD": {
-        "sell_rate": 1050.0,
+        "sell_rate": 1030.0,
         "buy_rate": 1080.0
     },
     "USD_CAD": {
-        "sell_rate": 135.0,
-        "buy_rate": 145.0
+        "sell_rate": 1.35,
+        "buy_rate": 1.45
     },
     "USD_CNY": {
         "sell_rate": 7.2,
         "buy_rate": 7.6
     },
     "usd_transfer_fee": 50.0,
-    "last_updated": "2026-03-18 23:02:09"
+    "last_updated": "2026-03-19 01:05:20"
 }

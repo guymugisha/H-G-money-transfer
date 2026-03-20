@@ -699,13 +699,24 @@ def generate_report():
     script_path = os.path.join(BASE_DIR, 'scripts', 'generate_monthly_report.py')
     
     try:
+        script_env = os.environ.copy()
+        script_env['DATA_DIR'] = DATA_DIR
         result = subprocess.run(
             ['python3', script_path],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
+            env=script_env
         )
         if result.returncode == 0:
+            # Reset cumulative profit directly from the Flask app
+            # (the scripts/ dir is not volume-mounted, so the subprocess
+            #  may run a stale copy that doesn't reset properly)
+            balances = load_balances()
+            balances['total_profit_rwf'] = 0.0
+            balances['last_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            save_json(BALANCES_FILE, balances)
+
             flash("Monthly report generated successfully! Database reset for new month.", "success")
         else:
             flash(f"Report generation failed: {result.stderr}", "error")

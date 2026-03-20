@@ -5,10 +5,10 @@ import shutil
 from datetime import datetime
 from fpdf import FPDF
 
-# Paths
+# Paths — prefer DATA_DIR env var (set by Flask app) for consistency
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(SCRIPTS_DIR)
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_DIR = os.environ.get('DATA_DIR', os.path.join(BASE_DIR, 'data'))
 DB_FILE = os.path.join(DATA_DIR, 'transactions.db')
 RATES_FILE = os.path.join(DATA_DIR, 'rates.json')
 BALANCES_FILE = os.path.join(DATA_DIR, 'balances.json')
