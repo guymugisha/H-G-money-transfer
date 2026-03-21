@@ -7,6 +7,7 @@
     <title>H&G Money Transfer - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
+        /* Apply saved theme before first paint to avoid flash */
         const savedTheme = localStorage.getItem('theme') || 'light';
         if (savedTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -15,128 +16,136 @@
 </head>
 
 <body>
+    <!-- ═══════════════════════════════════════
+         DESKTOP SIDEBAR (hidden on mobile via CSS)
+         ═══════════════════════════════════════ -->
     {% if session.get('user') %}
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <div class="sidebar">
-        <button type="button" class="sidebar-close" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
+    <nav class="sidebar">
         <div class="sidebar-header">
             <img src="{{ url_for('static', filename='logo-edited.png') }}" alt="H&G Logo" class="sidebar-logo">
         </div>
+
         <div class="sidebar-menu">
-            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-                <span>📊 Dashboard</span>
+            <a href="{{ url_for('dashboard') }}"
+               class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                🏠 <span>Dashboard</span>
             </a>
-            <a href="{{ url_for('calculator') }}" class="{% if request.endpoint == 'calculator' %}active{% endif %}">
-                <span>🧮 Calculator</span>
+            <a href="{{ url_for('calculator') }}"
+               class="{% if request.endpoint == 'calculator' %}active{% endif %}">
+                💱 <span>Calculator</span>
             </a>
             <a href="{{ url_for('transactions_history') }}"
-                class="{% if request.endpoint == 'transactions_history' %}active{% endif %}">
-                <span>📜 Transactions</span>
+               class="{% if request.endpoint == 'transactions_history' %}active{% endif %}">
+                📋 <span>Transactions</span>
             </a>
             {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('rates_settings') }}"
-                class="{% if request.endpoint == 'rates_settings' %}active{% endif %}">
-                <span>⚙️ Rates Settings</span>
+               class="{% if request.endpoint == 'rates_settings' %}active{% endif %}">
+                📈 <span>Rates Settings</span>
             </a>
             {% endif %}
             <a href="{{ url_for('monthly_reports') }}"
-                class="{% if request.endpoint == 'monthly_reports' %}active{% endif %}">
-                <span>📂 Monthly Reports</span>
+               class="{% if request.endpoint == 'monthly_reports' %}active{% endif %}">
+                📄 <span>Monthly Reports</span>
             </a>
         </div>
+
         <div class="sidebar-footer">
             <p>Logged in as: <strong>{{ session.get('user') }}</strong></p>
-            <button id="theme-toggle" class="btn btn-secondary"
-                style="width: 100%; margin-top: 10px; margin-bottom: 10px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem;">
-                <span id="theme-icon">🌓</span> Toggle Theme
+            <button type="button" id="theme-toggle" class="btn btn-theme"
+                style="width:100%; margin-top:10px; margin-bottom:10px; padding:0.5rem;
+                       display:flex; align-items:center; justify-content:center;
+                       gap:0.5rem; font-size:0.85rem;">
+                🌓 Toggle Theme
             </button>
-            <a href="{{ url_for('logout') }}"
-                style="color: #d32f2f; text-decoration: none; display: block; text-align: center; border-top: 1px solid var(--border-color); padding-top: 10px;">🚪
-                Logout</a>
+            <a href="{{ url_for('logout') }}" class="sidebar-logout">🚪 Logout</a>
         </div>
-    </div>
+    </nav>
     {% endif %}
 
-    <div class="main-content" style="{% if not session.get('user') %}margin-left: 0; padding: 0;{% endif %}">
+    <!-- ═══════════════════════════════════════
+         MAIN CONTENT
+         ═══════════════════════════════════════ -->
+    <div class="main-content" style="{% if not session.get('user') %}margin-left: 0;{% endif %}">
+
         {% if session.get('user') %}
-        <header class="fade-in-down">
-            <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
-                <button type="button" class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                </button>
-                <h1 style="margin: 0;">{% block page_title %}{% endblock %}</h1>
-            </div>
+        <header>
+            <h1>{% block page_title %}{% endblock %}</h1>
             <div class="user-info">
-                <span>Welcome, {{ session.get('user') }}</span>
+                <span>{{ session.get('user') }}</span>
                 <span class="user-role">{{ session.get('role') | capitalize }}</span>
             </div>
         </header>
         {% endif %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="card alert alert-{{ category }} slide-in"
-            style="background: {% if category == 'error' %}#ffebee{% else %}#e8f5e9{% endif %}; border-left: 5px solid {% if category == 'error' %}#f44336{% else %}#4caf50{% endif %};">
-            {{ message }}
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+        <div class="page-content" style="{% if not session.get('user') %}padding: 0;{% endif %}">
 
-        <div class="page-content fade-in-up">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="card slide-in"
+                style="background: {% if category == 'error' %}#ffebee{% else %}#e8f5e9{% endif %};
+                       border-left: 5px solid {% if category == 'error' %}#f44336{% else %}#4caf50{% endif %};
+                       margin-bottom: 1rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
             {% block content %}{% endblock %}
+
         </div>
     </div>
+
+    <!-- ═══════════════════════════════════════
+         MOBILE BOTTOM NAV (shown on mobile via CSS, zero JS)
+         ═══════════════════════════════════════ -->
+    {% if session.get('user') %}
+    <nav class="bottom-nav">
+        <a href="{{ url_for('dashboard') }}"
+           class="bottom-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-label">Home</span>
+        </a>
+        <a href="{{ url_for('calculator') }}"
+           class="bottom-nav-item {% if request.endpoint == 'calculator' %}active{% endif %}">
+            <span class="bottom-nav-icon">💱</span>
+            <span class="bottom-nav-label">Calc</span>
+        </a>
+        <a href="{{ url_for('transactions_history') }}"
+           class="bottom-nav-item {% if request.endpoint == 'transactions_history' %}active{% endif %}">
+            <span class="bottom-nav-icon">📋</span>
+            <span class="bottom-nav-label">Txns</span>
+        </a>
+        {% if session.get('role') == 'admin' %}
+        <a href="{{ url_for('rates_settings') }}"
+           class="bottom-nav-item {% if request.endpoint == 'rates_settings' %}active{% endif %}">
+            <span class="bottom-nav-icon">📈</span>
+            <span class="bottom-nav-label">Rates</span>
+        </a>
+        {% endif %}
+        <a href="{{ url_for('monthly_reports') }}"
+           class="bottom-nav-item {% if request.endpoint == 'monthly_reports' %}active{% endif %}">
+            <span class="bottom-nav-icon">📄</span>
+            <span class="bottom-nav-label">Reports</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="bottom-nav-item">
+            <span class="bottom-nav-icon">🚪</span>
+            <span class="bottom-nav-label">Logout</span>
+        </a>
+    </nav>
+    {% endif %}
 
     <script>
         // ── THEME TOGGLE ──
         const themeToggleBtn = document.getElementById('theme-toggle');
         if (themeToggleBtn) {
             themeToggleBtn.addEventListener('click', () => {
-                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('theme', newTheme);
-            });
-        }
-
-        // ── MOBILE SIDEBAR ──
-        function initMobileSidebar() {
-            var hamburgerBtn = document.getElementById('hamburger-btn');
-            var sidebarEl    = document.querySelector('.sidebar');
-            var overlayEl    = document.getElementById('sidebar-overlay');
-            var closeBtn     = document.getElementById('sidebar-close-btn');
-
-            if (!hamburgerBtn || !sidebarEl) return;
-
-            function openSidebar() {
-                sidebarEl.classList.add('open');
-                if (overlayEl) {
-                    overlayEl.classList.add('visible');
-                }
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeSidebar() {
-                sidebarEl.classList.remove('open');
-                if (overlayEl) {
-                    overlayEl.classList.remove('visible');
-                }
-                document.body.style.overflow = '';
-            }
-
-            hamburgerBtn.addEventListener('click', openSidebar);
-            if (overlayEl) overlayEl.addEventListener('click', closeSidebar);
-            if (closeBtn)  closeBtn.addEventListener('click', closeSidebar);
-
-            // Close sidebar when a nav link is tapped on mobile
-            document.querySelectorAll('.sidebar-menu a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) closeSidebar();
-                });
+                const current = document.documentElement.getAttribute('data-theme') || 'light';
+                const next = current === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
             });
         }
 
@@ -144,7 +153,6 @@
         function initCollapsibles() {
             document.querySelectorAll('.collapsible-header').forEach(header => {
                 header.addEventListener('click', function (e) {
-                    // Don't toggle if the user clicked a link or button inside the header
                     if (e.target.closest('a, button')) return;
                     const body = this.nextElementSibling;
                     if (!body || !body.classList.contains('collapsible-body')) return;
@@ -154,17 +162,15 @@
             });
         }
 
-        // ── CARD ANIMATIONS ──
+        // ── CARD ANIMATIONS + SIDEBAR RIPPLE ──
         document.addEventListener('DOMContentLoaded', () => {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach((card, i) => {
-                card.style.animationDelay = `${i * 0.07}s`;
+            document.querySelectorAll('.card').forEach((card, i) => {
+                card.style.animationDelay = `${i * 0.06}s`;
                 card.classList.add('card-appear');
             });
 
-            // Sidebar ripple effect
             document.querySelectorAll('.sidebar-menu a').forEach(link => {
-                link.addEventListener('click', function (e) {
+                link.addEventListener('click', function () {
                     const ripple = document.createElement('span');
                     ripple.classList.add('ripple');
                     this.appendChild(ripple);
@@ -173,7 +179,6 @@
             });
 
             initCollapsibles();
-            initMobileSidebar();
         });
 
         // ── STAT NUMBER ANIMATION ──
@@ -183,13 +188,11 @@
             if (isNaN(target) || target === 0) return;
             const duration = 800;
             const start = performance.now();
-
             function update(now) {
                 const elapsed = now - start;
                 const progress = Math.min(elapsed / duration, 1);
                 const eased = 1 - Math.pow(1 - progress, 3);
-                const current = target * eased;
-                el.innerText = current.toLocaleString(undefined, {
+                el.innerText = (target * eased).toLocaleString(undefined, {
                     maximumFractionDigits: target % 1 !== 0 ? 2 : 0
                 });
                 if (progress < 1) requestAnimationFrame(update);
