@@ -70,7 +70,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <p style="font-size: 0.8rem; color: var(--text-secondary);">
                     Last Updated: {{ rates.last_updated }}
                 </p>
@@ -111,23 +111,28 @@
 
         {% if debts %}
         <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-            <h3>Pending Debts</h3>
-            <p class="stat-label" style="margin-bottom: 1rem;">Outstanding foreign currency owed from empty batch
-                transactions.</p>
-            {% set has_debt = namespace(found=false) %}
-            {% for currency, debt in debts.items() %}
-            {% if debt > 0 %}
-            {% set has_debt.found = true %}
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
-                <span style="font-weight: 600;">{{ currency }}</span>
-                <span style="color: #e53935; font-weight: 700;">{{ '{:,.4f}'.format(debt) }} {{ currency }} owed</span>
+            <div class="collapsible-header">
+                <h3>Pending Debts</h3>
+                <span class="collapsible-icon">&#x25be;</span>
             </div>
-            {% endif %}
-            {% endfor %}
-            {% if not has_debt.found %}
-            <p style="color: var(--secondary-color); font-size: 0.9rem;">✅ No pending debts</p>
-            {% endif %}
+            <div class="collapsible-body">
+                <p class="stat-label" style="margin-bottom: 1rem; margin-top: 0.5rem;">Outstanding foreign currency owed from empty batch
+                    transactions.</p>
+                {% set has_debt = namespace(found=false) %}
+                {% for currency, debt in debts.items() %}
+                {% if debt > 0 %}
+                {% set has_debt.found = true %}
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                    <span style="font-weight: 600;">{{ currency }}</span>
+                    <span style="color: #e53935; font-weight: 700;">{{ '{:,.4f}'.format(debt) }} {{ currency }} owed</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if not has_debt.found %}
+                <p style="color: var(--secondary-color); font-size: 0.9rem;">&#x2705; No pending debts</p>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
 
@@ -144,87 +149,92 @@
     </div>
 </div>
 
-<!-- ── FIFO BATCH VISIBILITY ── -->
-<div class="card" style="grid-column: span 3; margin-top: 0;">
-    <h3>FIFO Batch Ledger</h3>
-    <p class="stat-label" style="margin-bottom: 1.5rem;">Current inventory batches per currency — oldest consumed first
-        when paying out.</p>
-
-    {% for currency in ['USD', 'CNY', 'CAD'] %}
-    <div style="margin-bottom: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <h4 style="color: var(--primary-color);">{{ currency }} Batches</h4>
-            {% if batches and batches[currency] %}
-            {% set total_remaining = namespace(val=0) %}
-            {% for b in batches[currency] %}
-            {% set total_remaining.val = total_remaining.val + b.remaining %}
-            {% endfor %}
-            <span style="font-size: 0.85rem; color: var(--secondary-color); font-weight: 700;">
-                Total Available: {{ '{:,.4f}'.format(total_remaining.val) }} {{ currency }}
-            </span>
-            {% endif %}
-        </div>
-
-        {% if batches and batches[currency] %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Batch #</th>
-                    <th>Date Created</th>
-                    <th class="text-right">Original Amount</th>
-                    <th class="text-right">Remaining</th>
-                    <th class="text-right">Consumed</th>
-                    <th class="text-right">Sell Rate Used</th>
-                    <th class="text-right">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for batch in batches[currency] %}
-                {% set consumed = batch.original_amount - batch.remaining %}
-                {% set pct_remaining = (batch.remaining / batch.original_amount * 100) if batch.original_amount > 0 else
-                0 %}
-                <tr>
-                    <td style="font-weight: 600; color: var(--primary-color);">#{{ batch.id }}</td>
-                    <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ batch.timestamp }}</td>
-                    <td class="text-right">{{ '{:,.4f}'.format(batch.original_amount) }} {{ currency }}</td>
-                    <td class="text-right"
-                        style="font-weight: 700; color: {% if pct_remaining > 50 %}var(--secondary-color){% elif pct_remaining > 20 %}var(--accent-color){% else %}#e53935{% endif %};">
-                        {{ '{:,.4f}'.format(batch.remaining) }} {{ currency }}
-                    </td>
-                    <td class="text-right" style="color: var(--text-secondary);">
-                        {{ '{:,.4f}'.format(consumed) }} {{ currency }}
-                    </td>
-                    <td class="text-right" style="font-family: 'DM Mono', monospace;">
-                        {{ '{:,.2f}'.format(batch.sell_rate) }} RWF
-                    </td>
-                    <td class="text-right">
-                        <!-- Progress bar -->
-                        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
-                            <div
-                                style="width: 80px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
-                                <div
-                                    style="width: {{ pct_remaining | round(0) }}%; height: 100%; background: {% if pct_remaining > 50 %}var(--secondary-color){% elif pct_remaining > 20 %}var(--accent-color){% else %}#e53935{% endif %}; border-radius: 3px; transition: width 0.5s ease;">
-                                </div>
-                            </div>
-                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">{{
-                                pct_remaining | round(1) }}%</span>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div
-            style="padding: 1.5rem; text-align: center; color: var(--text-secondary); background: rgba(0,0,0,0.02); border-radius: 8px; border: 1px dashed var(--border-color);">
-            No active {{ currency }} batches
-            {% if debts and debts[currency] > 0 %}
-            — <span style="color: #e53935; font-weight: 600;">{{ '{:,.4f}'.format(debts[currency]) }} {{ currency }} in
-                debt</span>
-            {% endif %}
-        </div>
-        {% endif %}
+<!-- ── FIFO BATCH LEDGER (collapsible) ── -->
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="collapsible-header">
+        <h3>FIFO Batch Ledger</h3>
+        <span class="collapsible-icon">&#x25be;</span>
     </div>
-    {% endfor %}
+    <div class="collapsible-body">
+        <p class="stat-label" style="margin-top: 0.5rem; margin-bottom: 1.5rem;">Current inventory batches per currency — oldest consumed first
+            when paying out.</p>
+
+        {% for currency in ['USD', 'CNY', 'CAD'] %}
+        <div style="margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h4 style="color: var(--primary-color);">{{ currency }} Batches</h4>
+                {% if batches and batches[currency] %}
+                {% set total_remaining = namespace(val=0) %}
+                {% for b in batches[currency] %}
+                {% set total_remaining.val = total_remaining.val + b.remaining %}
+                {% endfor %}
+                <span style="font-size: 0.85rem; color: var(--secondary-color); font-weight: 700;">
+                    Total Available: {{ '{:,.4f}'.format(total_remaining.val) }} {{ currency }}
+                </span>
+                {% endif %}
+            </div>
+
+            {% if batches and batches[currency] %}
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Batch #</th>
+                            <th>Date Created</th>
+                            <th class="text-right">Original Amount</th>
+                            <th class="text-right">Remaining</th>
+                            <th class="text-right">Consumed</th>
+                            <th class="text-right">Sell Rate Used</th>
+                            <th class="text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch in batches[currency] %}
+                        {% set consumed = batch.original_amount - batch.remaining %}
+                        {% set pct_remaining = (batch.remaining / batch.original_amount * 100) if batch.original_amount > 0 else 0 %}
+                        <tr>
+                            <td style="font-weight: 600; color: var(--primary-color);">#{{ batch.id }}</td>
+                            <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ batch.timestamp }}</td>
+                            <td class="text-right">{{ '{:,.4f}'.format(batch.original_amount) }} {{ currency }}</td>
+                            <td class="text-right"
+                                style="font-weight: 700; color: {% if pct_remaining > 50 %}var(--secondary-color){% elif pct_remaining > 20 %}var(--accent-color){% else %}#e53935{% endif %};">
+                                {{ '{:,.4f}'.format(batch.remaining) }} {{ currency }}
+                            </td>
+                            <td class="text-right" style="color: var(--text-secondary);">
+                                {{ '{:,.4f}'.format(consumed) }} {{ currency }}
+                            </td>
+                            <td class="text-right" style="font-family: 'DM Mono', monospace;">
+                                {{ '{:,.2f}'.format(batch.sell_rate) }} RWF
+                            </td>
+                            <td class="text-right">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
+                                    <div
+                                        style="width: 80px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+                                        <div
+                                            style="width: {{ pct_remaining | round(0) }}%; height: 100%; background: {% if pct_remaining > 50 %}var(--secondary-color){% elif pct_remaining > 20 %}var(--accent-color){% else %}#e53935{% endif %}; border-radius: 3px; transition: width 0.5s ease;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">{{
+                                        pct_remaining | round(1) }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div
+                style="padding: 1.5rem; text-align: center; color: var(--text-secondary); background: rgba(0,0,0,0.02); border-radius: 8px; border: 1px dashed var(--border-color);">
+                No active {{ currency }} batches
+                {% if debts and debts[currency] > 0 %}
+                — <span style="color: #e53935; font-weight: 600;">{{ '{:,.4f}'.format(debts[currency]) }} {{ currency }} in
+                    debt</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

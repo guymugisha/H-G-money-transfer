@@ -8,7 +8,7 @@
     <div class="card" style="grid-column: span 2;">
         <h3>Forex Calculator</h3>
         <form method="POST" id="calcForm" style="margin-top: 1.5rem;">
-            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="form-group">
                     <label for="client_name">Client Name</label>
                     <input type="text" name="client_name" id="client_name" required placeholder="Enter client name">
@@ -81,7 +81,7 @@
                 </div>
             </div>
 
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary" id="submit_btn">Confirm & Record</button>
                 <button type="reset" class="btn btn-secondary" onclick="resetPreview()">Clear</button>
             </div>

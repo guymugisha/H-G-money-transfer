@@ -16,7 +16,9 @@
 
 <body>
     {% if session.get('user') %}
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="sidebar">
+        <button class="sidebar-close" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
         <div class="sidebar-header">
             <img src="{{ url_for('static', filename='logo-edited.png') }}" alt="H&G Logo" class="sidebar-logo">
         </div>
@@ -58,7 +60,14 @@
     <div class="main-content" style="{% if not session.get('user') %}margin-left: 0; padding: 0;{% endif %}">
         {% if session.get('user') %}
         <header class="fade-in-down">
-            <h1>{% block page_title %}{% endblock %}</h1>
+            <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+                <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <h1 style="margin: 0;">{% block page_title %}{% endblock %}</h1>
+            </div>
             <div class="user-info">
                 <span>Welcome, {{ session.get('user') }}</span>
                 <span class="user-role">{{ session.get('role') | capitalize }}</span>
@@ -83,6 +92,7 @@
     </div>
 
     <script>
+        // ── THEME TOGGLE ──
         const themeToggleBtn = document.getElementById('theme-toggle');
         if (themeToggleBtn) {
             themeToggleBtn.addEventListener('click', () => {
@@ -93,7 +103,52 @@
             });
         }
 
-        // Staggered card animations on page load
+        // ── MOBILE SIDEBAR ──
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const sidebarEl = document.querySelector('.sidebar');
+        const overlayEl = document.getElementById('sidebar-overlay');
+        const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+
+        function openSidebar() {
+            if (!sidebarEl) return;
+            sidebarEl.classList.add('open');
+            overlayEl.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            if (!sidebarEl) return;
+            sidebarEl.classList.remove('open');
+            overlayEl.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        if (hamburgerBtn) hamburgerBtn.addEventListener('click', openSidebar);
+        if (overlayEl) overlayEl.addEventListener('click', closeSidebar);
+        if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+
+        // Close sidebar when a nav link is tapped on mobile
+        document.querySelectorAll('.sidebar-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) closeSidebar();
+            });
+        });
+
+        // ── COLLAPSIBLE SECTIONS ──
+        function initCollapsibles() {
+            document.querySelectorAll('.collapsible-header').forEach(header => {
+                header.addEventListener('click', function (e) {
+                    // Don't toggle if the user clicked a link or button inside the header
+                    if (e.target.closest('a, button')) return;
+                    const body = this.nextElementSibling;
+                    if (!body || !body.classList.contains('collapsible-body')) return;
+                    this.classList.toggle('collapsed');
+                    body.classList.toggle('collapsed');
+                });
+            });
+        }
+
+        // ── CARD ANIMATIONS ──
         document.addEventListener('DOMContentLoaded', () => {
             const cards = document.querySelectorAll('.card');
             cards.forEach((card, i) => {
@@ -102,8 +157,7 @@
             });
 
             // Sidebar ripple effect
-            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
-            sidebarLinks.forEach(link => {
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
                 link.addEventListener('click', function (e) {
                     const ripple = document.createElement('span');
                     ripple.classList.add('ripple');
@@ -111,9 +165,11 @@
                     setTimeout(() => ripple.remove(), 600);
                 });
             });
+
+            initCollapsibles();
         });
 
-        // Smooth number counter for stat values
+        // ── STAT NUMBER ANIMATION ──
         function animateNumber(el) {
             const raw = el.innerText.replace(/[^0-9.]/g, '');
             const target = parseFloat(raw);
