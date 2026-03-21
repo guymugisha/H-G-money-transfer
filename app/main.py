@@ -31,7 +31,7 @@ def get_db():
     url = os.environ.get('DATABASE_URL')
     if not url:
         raise RuntimeError("DATABASE_URL environment variable not set")
-    return psycopg2.connect(url)
+    return psycopg2.connect(url, sslmode='require')
 
 def get_cursor(conn):
     return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
