@@ -58,6 +58,8 @@ body {
     display: flex;
     flex-direction: column;
     position: fixed;
+    top: 0;
+    left: 0;
     height: 100vh;
     z-index: 100;
     transition: background-color 0.5s ease, border-color 0.5s ease;

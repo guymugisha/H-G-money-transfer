@@ -18,7 +18,7 @@
     {% if session.get('user') %}
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="sidebar">
-        <button class="sidebar-close" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
+        <button type="button" class="sidebar-close" id="sidebar-close-btn" aria-label="Close navigation">&#x2715;</button>
         <div class="sidebar-header">
             <img src="{{ url_for('static', filename='logo-edited.png') }}" alt="H&G Logo" class="sidebar-logo">
         </div>
@@ -61,7 +61,7 @@
         {% if session.get('user') %}
         <header class="fade-in-down">
             <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
-                <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+                <button type="button" class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
                     <span class="hamburger-line"></span>
                     <span class="hamburger-line"></span>
                     <span class="hamburger-line"></span>
@@ -104,35 +104,41 @@
         }
 
         // ── MOBILE SIDEBAR ──
-        const hamburgerBtn = document.getElementById('hamburger-btn');
-        const sidebarEl = document.querySelector('.sidebar');
-        const overlayEl = document.getElementById('sidebar-overlay');
-        const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+        function initMobileSidebar() {
+            var hamburgerBtn = document.getElementById('hamburger-btn');
+            var sidebarEl    = document.querySelector('.sidebar');
+            var overlayEl    = document.getElementById('sidebar-overlay');
+            var closeBtn     = document.getElementById('sidebar-close-btn');
 
-        function openSidebar() {
-            if (!sidebarEl) return;
-            sidebarEl.classList.add('open');
-            overlayEl.classList.add('visible');
-            document.body.style.overflow = 'hidden';
-        }
+            if (!hamburgerBtn || !sidebarEl) return;
 
-        function closeSidebar() {
-            if (!sidebarEl) return;
-            sidebarEl.classList.remove('open');
-            overlayEl.classList.remove('visible');
-            document.body.style.overflow = '';
-        }
+            function openSidebar() {
+                sidebarEl.classList.add('open');
+                if (overlayEl) {
+                    overlayEl.classList.add('visible');
+                }
+                document.body.style.overflow = 'hidden';
+            }
 
-        if (hamburgerBtn) hamburgerBtn.addEventListener('click', openSidebar);
-        if (overlayEl) overlayEl.addEventListener('click', closeSidebar);
-        if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
+            function closeSidebar() {
+                sidebarEl.classList.remove('open');
+                if (overlayEl) {
+                    overlayEl.classList.remove('visible');
+                }
+                document.body.style.overflow = '';
+            }
 
-        // Close sidebar when a nav link is tapped on mobile
-        document.querySelectorAll('.sidebar-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) closeSidebar();
+            hamburgerBtn.addEventListener('click', openSidebar);
+            if (overlayEl) overlayEl.addEventListener('click', closeSidebar);
+            if (closeBtn)  closeBtn.addEventListener('click', closeSidebar);
+
+            // Close sidebar when a nav link is tapped on mobile
+            document.querySelectorAll('.sidebar-menu a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) closeSidebar();
+                });
             });
-        });
+        }
 
         // ── COLLAPSIBLE SECTIONS ──
         function initCollapsibles() {
@@ -167,6 +173,7 @@
             });
 
             initCollapsibles();
+            initMobileSidebar();
         });
 
         // ── STAT NUMBER ANIMATION ──
