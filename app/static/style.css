@@ -40,17 +40,17 @@
 }
 
 /* ── DARK THEME ── */
-[data-theme="dark"] {
+body.dark-mode {
     --primary-color:   #7bb8d0;
     --primary-light:   #9acde0;
-    --primary-dark:    #0a0e18;
+    --primary-dark:    #0d1520;
     --secondary-color: #85c9ac;
     --accent-color:    #7bb8d0;
 
-    --bg-color:        #0f1420;
-    --sidebar-bg:      #0a0e18;
-    --header-bg:       #0a0e18;
-    --card-bg:         #1a2035;
+    --bg-color:        #0f1923;
+    --sidebar-bg:      #0d1520;
+    --header-bg:       #0d1520;
+    --card-bg:         #1a2535;
     --input-bg:        #1e2844;
 
     --text-primary:    #e2e8f0;
@@ -277,7 +277,7 @@ header h1 {
     left: 0;
     right: 0;
     height: 60px;
-    background: #1a2332;
+    background: var(--sidebar-bg);
     border-top: 1px solid rgba(91, 158, 185, 0.25);
     z-index: 200;
     flex-direction: row;
@@ -342,7 +342,7 @@ header h1 {
     box-shadow: none;
 }
 
-[data-theme="dark"] .card .card {
+body.dark-mode .card .card {
     background: rgba(255, 255, 255, 0.03);
     box-shadow: none;
 }
@@ -426,7 +426,7 @@ header h1 {
     transition: color 0.3s ease;
 }
 
-[data-theme="dark"] .stat-value {
+body.dark-mode .stat-value {
     color: var(--text-primary);
 }
 
@@ -460,7 +460,7 @@ th {
     text-transform: uppercase;
 }
 
-[data-theme="dark"] th {
+body.dark-mode th {
     background: rgba(255, 255, 255, 0.03);
 }
 
@@ -477,7 +477,7 @@ tbody tr:nth-child(even) td {
     background-color: #f8fafc;
 }
 
-[data-theme="dark"] tbody tr:nth-child(even) td {
+body.dark-mode tbody tr:nth-child(even) td {
     background-color: rgba(255, 255, 255, 0.02);
 }
 
@@ -550,7 +550,7 @@ select:hover:not(:focus) {
 .btn-primary:hover {
     background: #4d8fa8;
     box-shadow: 0 4px 14px rgba(91, 158, 185, 0.40);
-    transform: translateY(-1px);
+    transform: translateY(-1px) scale(1.03);
     color: #ffffff;
     text-decoration: none;
 }
@@ -568,7 +568,7 @@ select:hover:not(:focus) {
 .btn-secondary:hover {
     background: #f0f4f8;
     border-color: #c8d8e4;
-    transform: translateY(-1px);
+    transform: translateY(-1px) scale(1.03);
     color: #1a2332;
     text-decoration: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
@@ -576,13 +576,13 @@ select:hover:not(:focus) {
 
 .btn-secondary:active { transform: translateY(0); }
 
-[data-theme="dark"] .btn-secondary {
+body.dark-mode .btn-secondary {
     background: #1e2844;
     color: #e2e8f0;
     border-color: #2a3548;
 }
 
-[data-theme="dark"] .btn-secondary:hover {
+body.dark-mode .btn-secondary:hover {
     background: #253256;
     border-color: #3a4a60;
     color: #e2e8f0;
@@ -635,12 +635,7 @@ select:hover:not(:focus) {
     max-width: 82%;
     max-height: 100px;
     object-fit: contain;
-    transition: opacity 0.3s ease;
-    opacity: 0.92;
-}
-
-.sidebar-logo:hover {
-    opacity: 1;
+    animation: logoGlow 3.5s ease-in-out infinite;
 }
 
 .login-logo {
@@ -836,4 +831,83 @@ select:hover:not(:focus) {
 @media (min-width: 769px) {
     .sidebar   { display: flex !important; }
     .bottom-nav { display: none !important; }
+}
+
+
+/* ══════════════════════════════════════════
+   NEW ENHANCEMENTS
+   ══════════════════════════════════════════ */
+
+/* ── LOGO GLOW ── */
+@keyframes logoGlow {
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(91, 158, 185, 0.25)) brightness(0.95); }
+    50%       { filter: drop-shadow(0 0 14px rgba(91, 158, 185, 0.80)) brightness(1.08); }
+}
+
+/* ── CURRENCY CARD SHIMMER ── */
+@keyframes shimmer {
+    0%   { background-position: -100% center; }
+    100% { background-position: 200% center; }
+}
+
+.currency-card {
+    background: linear-gradient(
+        90deg,
+        var(--card-bg) 0%,
+        var(--card-bg) 30%,
+        rgba(91, 158, 185, 0.10) 50%,
+        var(--card-bg) 70%,
+        var(--card-bg) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3.5s ease-in-out infinite alternate;
+    transition: background-color 0.4s ease;
+}
+
+/* ── PROFIT GLOW ── */
+.profit-glow {
+    text-shadow:
+        0 0 10px rgba(104, 184, 154, 0.55),
+        0 0 22px rgba(104, 184, 154, 0.28);
+}
+
+/* ── PAGE EXIT TRANSITION ── */
+@keyframes pageExit {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-10px); }
+}
+
+body.page-exiting .main-content {
+    animation: pageExit 0.18s ease forwards;
+    pointer-events: none;
+}
+
+/* ── BOTTOM NAV ICON BOUNCE (CSS :active) ── */
+@keyframes navIconBounce {
+    0%, 100% { transform: translateY(0)   scale(1);    }
+    40%      { transform: translateY(-6px) scale(1.22); }
+    70%      { transform: translateY(-2px) scale(1.07); }
+}
+
+.bottom-nav-item:active .bottom-nav-icon {
+    animation: navIconBounce 0.32s ease;
+}
+
+/* ── DARK MODE — LOGIN CARD ── */
+body.dark-mode .login-card {
+    background: #1a2535;
+    border-top-color: #5b9eb9;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+body.dark-mode .login-card h2 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .login-card label {
+    color: #e2e8f0;
+}
+
+body.dark-mode .login-card p {
+    color: #7a8fa8;
 }

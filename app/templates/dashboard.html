@@ -32,12 +32,12 @@
     </div>
     <div class="card stat-card" style="border-left: 4px solid var(--secondary-color);">
         <span class="stat-label">Daily Profit (RWF)</span>
-        <span class="stat-value" style="color: var(--secondary-color);">{{ "{:,.0f}".format(daily_profit) }} RWF</span>
+        <span class="stat-value profit-glow" style="color: var(--secondary-color);">{{ "{:,.0f}".format(daily_profit) }} RWF</span>
         <span class="stat-trend">Today's transactions only</span>
     </div>
     <div class="card stat-card" style="border-left: 4px solid var(--accent-color);">
         <span class="stat-label">Total Profit (RWF)</span>
-        <span class="stat-value" style="color: var(--accent-color);">
+        <span class="stat-value profit-glow" style="color: var(--accent-color);">
             {{ "{:,.0f}".format(balances.total_profit_rwf if balances.total_profit_rwf else 0) }} RWF
         </span>
         <span class="stat-trend">Cumulative — editable by admin</span>
@@ -73,7 +73,7 @@
     <div class="collapsible-body">
         <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
             {% for curr in ['USD', 'CNY', 'CAD'] %}
-            <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px;">
+            <div class="currency-card" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px;">
                 <p style="font-weight: bold; margin-bottom: 0.5rem; color: var(--primary-color);">{{ curr }} ↔ RWF</p>
                 <div style="display: flex; justify-content: space-between;">
                     <span class="stat-label">Sell ({{ curr }}→RWF)</span>
@@ -95,7 +95,7 @@
         <h3 style="margin-top: 2rem;">Independent Pairs</h3>
         <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem;">
             {% for curr, label, dest in [('USD_CAD', 'USD ↔ CAD', 'CAD'), ('USD_CNY', 'USD ↔ CNY', 'CNY')] %}
-            <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px;">
+            <div class="currency-card" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px;">
                 <p style="font-weight: bold; margin-bottom: 0.5rem; color: var(--primary-color);">{{ label }}</p>
                 <div style="display: flex; justify-content: space-between;">
                     <span class="stat-label">Sell (USD→{{ dest }})</span>

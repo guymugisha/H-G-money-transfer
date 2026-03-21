@@ -6,16 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>H&G Money Transfer - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        /* Apply saved theme before first paint to avoid flash */
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        if (savedTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 
 <body>
+    <!-- Anti-flash: set theme class before first paint -->
+    <script>(function(){var t=localStorage.getItem('theme');document.body.className=t==='dark'?'dark-mode':'light-mode';}());</script>
+
     <!-- ═══════════════════════════════════════
          DESKTOP SIDEBAR (hidden on mobile via CSS)
          ═══════════════════════════════════════ -->
@@ -52,11 +49,11 @@
 
         <div class="sidebar-footer">
             <p>Logged in as: <strong>{{ session.get('user') }}</strong></p>
-            <button type="button" id="theme-toggle" class="btn btn-theme"
+            <button type="button" class="btn btn-theme theme-toggle-btn"
                 style="width:100%; margin-top:10px; margin-bottom:10px; padding:0.5rem;
                        display:flex; align-items:center; justify-content:center;
                        gap:0.5rem; font-size:0.85rem;">
-                🌓 Toggle Theme
+                <span class="theme-icon">🌙</span> Toggle Theme
             </button>
             <a href="{{ url_for('logout') }}" class="sidebar-logout">🚪 Logout</a>
         </div>
@@ -72,6 +69,11 @@
         <header>
             <h1>{% block page_title %}{% endblock %}</h1>
             <div class="user-info">
+                <button type="button" class="btn btn-theme theme-toggle-btn"
+                    title="Toggle dark / light mode" aria-label="Toggle theme"
+                    style="padding:0.35rem 0.7rem; font-size:1rem; line-height:1; flex-shrink:0;">
+                    <span class="theme-icon">🌙</span>
+                </button>
                 <span>{{ session.get('user') }}</span>
                 <span class="user-role">{{ session.get('role') | capitalize }}</span>
             </div>
@@ -137,75 +139,7 @@
     </nav>
     {% endif %}
 
-    <script>
-        // ── THEME TOGGLE ──
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', () => {
-                const current = document.documentElement.getAttribute('data-theme') || 'light';
-                const next = current === 'light' ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', next);
-                localStorage.setItem('theme', next);
-            });
-        }
 
-        // ── COLLAPSIBLE SECTIONS ──
-        function initCollapsibles() {
-            document.querySelectorAll('.collapsible-header').forEach(header => {
-                header.addEventListener('click', function (e) {
-                    if (e.target.closest('a, button')) return;
-                    const body = this.nextElementSibling;
-                    if (!body || !body.classList.contains('collapsible-body')) return;
-                    this.classList.toggle('collapsed');
-                    body.classList.toggle('collapsed');
-                });
-            });
-        }
-
-        // ── CARD ANIMATIONS + SIDEBAR RIPPLE ──
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.card').forEach((card, i) => {
-                card.style.animationDelay = `${i * 0.06}s`;
-                card.classList.add('card-appear');
-            });
-
-            document.querySelectorAll('.sidebar-menu a').forEach(link => {
-                link.addEventListener('click', function () {
-                    const ripple = document.createElement('span');
-                    ripple.classList.add('ripple');
-                    this.appendChild(ripple);
-                    setTimeout(() => ripple.remove(), 600);
-                });
-            });
-
-            initCollapsibles();
-        });
-
-        // ── STAT NUMBER ANIMATION ──
-        function animateNumber(el) {
-            const raw = el.innerText.replace(/[^0-9.]/g, '');
-            const target = parseFloat(raw);
-            if (isNaN(target) || target === 0) return;
-            const duration = 800;
-            const start = performance.now();
-            function update(now) {
-                const elapsed = now - start;
-                const progress = Math.min(elapsed / duration, 1);
-                const eased = 1 - Math.pow(1 - progress, 3);
-                el.innerText = (target * eased).toLocaleString(undefined, {
-                    maximumFractionDigits: target % 1 !== 0 ? 2 : 0
-                });
-                if (progress < 1) requestAnimationFrame(update);
-            }
-            requestAnimationFrame(update);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.stat-value').forEach(el => {
-                setTimeout(() => animateNumber(el), 300);
-            });
-        });
-    </script>
 </body>
 
 </html>
